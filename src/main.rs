@@ -3,7 +3,7 @@
 #![allow(unused_variables)]
 
 use failure::Fallible;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 
 mod msg;
 use msg::Msg;
@@ -21,14 +21,25 @@ use msg_receiver as msgrecv;
 async fn main() -> Fallible<()> {
     let (tx, rx) = mpsc::channel::<Msg>(10);
     let (ctx, crx) = mpsc::channel::<msggen::Ctrl>(10);
+    let (otx, orx) = oneshot::channel::<msggen::HealthResponse>();
+
     tokio::spawn(msggen::new_generator(tx, crx));
     tokio::spawn(msgrecv::new_receiver(rx));
 
     my_sleep(2000).await; // печатать сообщения
 
-    println!("sending quitting message");
+    println!("sending health mes sage");
+    ctx.send(msggen::Ctrl::Health(otx)).await?; // здоровье
+    println!("health message have been sent");
+
+    let response = orx.await?;
+    println!("received HealthResponse {:?}", response);
+
+    my_sleep(2000).await; // еще печатать сообщение
+
+    println!("sending quit message");
     ctx.send(msggen::Ctrl::Quit).await?; // выйти
-    println!("sending message have been sent");
+    println!("quit message have been sent");
 
     my_sleep(2000).await; // не печатать сообщения
 
