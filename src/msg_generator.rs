@@ -29,10 +29,13 @@ pub async fn new_generator(chan: Sender<Msg>, mut controller: Receiver<Ctrl>) {
 			ctrl = controller.recv() => {
 				match ctrl {
 					Some(Ctrl::Quit) => {
-						println!("got a quit message");
 						break
+						println!("got a quit message");
 					},
-					None => break, // all senders have dropped
+					None => {
+						break
+						println!("None");
+					}, // all senders have dropped
 				}
 			}
 		}
